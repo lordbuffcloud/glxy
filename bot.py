@@ -19,8 +19,9 @@ import discord
 from discord import app_commands
 import asyncio
 import crew
+from tools.nmap_tool import NmapTool
+from db import store_conversation   
 
-# Define the agents in your hierarchical collaboration system
 research_agent = Agent(
     role='Research Agent',
     goal='Gather relevant data for user query.',
@@ -78,6 +79,7 @@ bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 DISCORD_CHAT_TOKEN = os.getenv("DISCORD_CHAT_TOKEN")
 STARTUP_CHANNEL_ID = os.getenv("STARTUP_CHANNEL_ID")
+agent_chatter_channel_id = int(os.getenv("AGENT_CHATTER_CHANNEL_ID"))
 
 # Initialize CrewAI with hierarchical agents
 crew = setup_crew()
@@ -116,6 +118,10 @@ signal.signal(signal.SIGINT, signal_handler)
 
 @bot.event
 async def on_ready():
+    global agent_chatter_channel
+    agent_chatter_channel_id = int(os.getenv("AGENT_CHATTER_CHANNEL_ID"))
+    agent_chatter_channel = await bot.fetch_channel(agent_chatter_channel_id)
+
     logger.info(f'{bot.user} is now running!')
     logger.info("on_ready event triggered")
 
@@ -137,7 +143,7 @@ async def on_ready():
     ╩╩╩╩╩╩___╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩
   ╩╩╩╩╩╩/\_ \╩╩╩3y5╩╩╩╩╩╩╩╩╩╩╩╩╩╩
   ╩╩╩__╩\//\ \╩╩╩__╩╩_╩__╩╩__╩╩╩╩
-  ╩/'_ `\╩\╩\ \╩/\ \/'/\ \/\ \╩╩╩
+  ╩/'_ `\╩\╩\ \╩/\ \/'/\ \ \/\ \╩╩╩
   /\ \L\ \╩\_\ \\/>  <\ \ \_\ \╩╩
   \╩\____ \/\____/\_/\_\/`____ \╩
   ╩\/___L\ \/____\//\/_/`/___/> \╩
@@ -168,9 +174,72 @@ async def on_ready():
     logger.info("on_ready event completed")
 
 # /chat command with animation and multi-agent responses
+@tree.command(name="chat", description="Chat with an intelligent multi-agent system for deep research")
+async def chat(interaction: discord.Interaction, message: str):
+    user_id = str(interaction.user.id)  # Get user ID as a string
+
+    try:
+        # Defer interaction to show the bot is processing
+        await interaction.response.defer(thinking=True)
+
+        # Initialize the animation message
+        embed = discord.Embed(title="$ Initializing Multi-Agent System...", description="[▓░░░░░░░░░░] 0% | Starting...", color=0x00ff00)
+        message_obj = await interaction.followup.send(embed=embed)
+
+        # Animation frames (edited in the same message)
+        frames = [
+            f"**$ Initializing Multi-Agent System...**\n[▓▓░░░░░░░░░░] 20% | Establishing connection",
+            f"**$ Multi-Agent System loading...**\n[▓▓▓▓▓░░░░░░░] 40% | Breaking through firewalls",
+            f"**$ Multi-Agent System Security check complete**\n[▓▓▓▓▓▓▓░░░░░] 60% | Setting up environment",
+            f"**$ Multi-Agent System Optimization in progress**\n[▓▓▓▓▓▓▓▓▓░░░] 80% | Executing final routines",
+            f"**$ Multi-Agent System Initialized**\n[▓▓▓▓▓▓▓▓▓▓▓] 100% | Ready to assist ⚡"
+        ]
+
+        # Edit the message to simulate animation
+        for frame in frames:
+            embed.description = frame
+            await message_obj.edit(embed=embed)
+            await asyncio.sleep(2)
+
+        # Inform agent chatter channel that collaboration has started
+        await agent_chatter_channel.send(f"🧠 **Agent Chatter**: Collaboration starting for user `{interaction.user}`.\nMessage: `{message}`")
+
+        # Hierarchical collaboration process
+        conversation_context = f"User: {message}"
+
+        # Log and send research agent input/output
+        await agent_chatter_channel.send("**Research Agent**: Gathering information...")
+        research_response = research_agent.execute(conversation_context)
+        await agent_chatter_channel.send(f"**Research Agent Response**: {research_response}")
+
+        # Log and send reasoning agent input/output
+        await agent_chatter_channel.send("**Reasoning Agent**: Analyzing the information...")
+        reasoning_response = reasoning_agent.execute(research_response)
+        await agent_chatter_channel.send(f"**Reasoning Agent Response**: {reasoning_response}")
+
+        # Log and send writer agent input/output
+        await agent_chatter_channel.send("**Writer Agent**: Synthesizing the final response...")
+        final_response = writer_agent.execute(reasoning_response)
+        await agent_chatter_channel.send(f"**Writer Agent Final Response**: {final_response}")
+
+        # Manager Agent final coordination (if applicable)
+        await agent_chatter_channel.send("**Manager Agent**: Coordinating the final response...")
+        crew_result = crew.handle_task(conversation_context)
+        await agent_chatter_channel.send(f"**Manager Agent Final Response**: {crew_result}")
+
+        # Store conversation in MongoDB for future reference
+        store_conversation(user_id, message, crew_result)
+
+        # Send final response to the user in the channel where /chat was invoked
+        final_embed = discord.Embed(title="🧠 Unified Agent Response", description=crew_result, color=0x1E90FF)
+        await interaction.followup.send(embed=final_embed)
+
+    except Exception as e:
+        await interaction.followup.send(f"❗ **An error occurred**: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}", exc_info=True)
 
 
-from db import store_conversation  # Import the store_conversation function from db.py
+# Import the store_conversation function from db.py
 
 from crewai import Crew, Process, Agent
 from langchain_openai import ChatOpenAI
@@ -194,8 +263,6 @@ from discord import app_commands
 @tree.command(name="nmap", description="Collaborative Nmap scan for penetration testing")
 async def nmap(interaction: discord.Interaction, target: str):
     user_id = str(interaction.user.id)  # Get user ID as a string
-    agent_chatter_channel_id = int(os.getenv("AGENT_CHATTER_CHANNEL_ID"))  # Channel ID for agent chatter
-    agent_chatter_channel = await bot.fetch_channel(agent_chatter_channel_id)
 
     try:
         # Defer interaction to show the bot is processing
@@ -251,7 +318,7 @@ async def nmap(interaction: discord.Interaction, target: str):
         await interaction.followup.send(f"❗ **An error occurred**: {str(e)}")
         logger.error(f"An error occurred: {str(e)}", exc_info=True)
 
-from tools.nmap_tool import NmapTool
+
 
 
 # /image command to process images with RAG
