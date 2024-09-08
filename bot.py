@@ -158,7 +158,7 @@ async def on_ready():
                     "\n\n**/image** – Analyze images beyond human capacity."
                     "\n\n**/doc** – Scan documents for critical information."
                     "\n\n**/code** – Execute code safely in an isolated environment."
-                    "\n\n**/memory** – Store important data for future use."
+                    "\n\n**/memory** – Store important data"
                 )
 
                 await channel.send(f"```{ascii_art}```")
