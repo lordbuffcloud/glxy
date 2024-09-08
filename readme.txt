@@ -1,76 +1,108 @@
-# GLXY Discord Bot
+"""
+╩╩╩╩╩╩╩___╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩
+╩╩╩╩╩╩/\_ \╩╩╩3y5╩╩╩╩╩╩╩╩╩╩╩╩╩╩
+╩╩╩__╩\//\ \╩╩╩__╩╩_╩__╩╩__╩╩╩╩
+╩/'_ `\╩\╩\ \╩/\ \/'/\ \/\ \╩╩╩
+/\ \L\ \╩\_\ \\/>  <\ \ \_\ \╩╩
+\╩\____ \/\____/\_/\_\/`____ \╩
+╩\/___L\ \/____\//\/_/`/___/> \
+╩╩╩/\____/╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩/\___/
+╩╩╩\_/__/╩╩╩╩╩xyo╩╩╩╩╩╩╩╩╩\/__/╩
+"""
+ 
+          GLXY Discord App
+Introduction
+Welcome to GLXY, an intelligent, multi-agent Discord bot. GLXY can engage in general conversation, perform web research, analyze documents, and even generate or execute code! Whether you’re a casual user or a tech enthusiast, GLXY is designed to be your virtual assistant on Discord.
 
-GLXY is an intelligent multi-agent Discord bot designed to handle various tasks including general conversation, web research, document analysis, and code execution.
+Key Features
+💬 General conversation with AI agents.
+🔍 Web research using the Perplexity API.
+📄 Document analysis through RAG (Retrieval-Augmented Generation).
+🖥️ Code generation and execution.
+🧠 Memory storage and retrieval capabilities.
+Installation
+Prerequisites
+Before installing GLXY, ensure that you have:
 
-## Features
+Python 3.7+ installed.
+A Discord account and Developer Portal access to create your bot.
+API keys for integrated services (e.g., Perplexity, DeepInfra).
+Step-by-Step Guide
+Clone the Repository
+Open your terminal and run:
 
-- General conversation using AI agents
-- Web research capabilities using Perplexity API
-- Document analysis and RAG (Retrieval-Augmented Generation)
-- Code execution and generation
-- Memory storage and retrieval
+bash
+Copy code
+git clone https://github.com/lordbuffcloud/glxy.git
+Navigate to the Project Directory
 
-## Installation
+bash
+Copy code
+cd glxy
+Create a Virtual Environment
+This helps keep your project dependencies isolated:
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/lordbuffcloud/glxy.git
-   ```
+bash
+Copy code
+python -m venv venv
+Activate the Virtual Environment
 
-2. Navigate to the project directory:
-   ```
-   cd glxy
-   ```
+On Windows:
+bash
+Copy code
+.\venv\Scripts\activate
+On macOS and Linux:
+bash
+Copy code
+source venv/bin/activate
+Install Dependencies Ensure all required packages are installed:
 
-3. Create a virtual environment:
-   ```
-   python -m venv venv
-   ```
+bash
+Copy code
+pip install -r requirements.txt
+Create a .env File
+This file will store your sensitive keys. In the root directory, create a .env file and add your bot token and API keys:
 
-4. Activate the virtual environment:
-   - On Windows:
-     ```
-     .\venv\Scripts\activate
-     ```
-   - On macOS and Linux:
-     ```
-     source venv/bin/activate
-     ```
+env
+Copy code
+DISCORD_TOKEN=your_discord_bot_token
+DEEPINFRA_API_KEY=your_deepinfra_api_key
+Usage
+Run the Bot
+Start your Discord bot by running the following command:
 
-5. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+bash
+Copy code
+python bot.py
+Invite the Bot to Your Server
+Head to the Discord Developer Portal, generate an OAuth2 URL, and invite your bot using the generated link.
 
-6. Create a `.env` file in the root directory and add your Discord bot token and other necessary API keys:
-   ```
-   DISCORD_TOKEN=your_discord_bot_token
-   DEEPINFRA_API_KEY=your_deepinfra_api_key
-   ```
+Interact with GLXY
+In your Discord server, use the following commands:
 
-## Usage
+/chat [message]: Engage in conversation with GLXY.
+/memory [operation] [key] [value]: Store or retrieve information from GLXY’s memory.
+Troubleshooting
+Common Issues and Solutions
+Bot Not Responding?
 
-1. Run the bot:
-   ```
-   python bot.py
-   ```
+Ensure the bot is online by checking the Discord Developer Portal.
+Verify your token in the .env file is correct and valid.
+Dependencies Not Installing?
 
-2. Invite the bot to your Discord server using the OAuth2 URL generated in the Discord Developer Portal.
+Check if you’re using the correct Python version (3.7 or higher).
+Ensure the virtual environment is activated before running installation commands.
+Commands Not Working?
 
-3. Use the following commands in your Discord server:
-   - `/chat [message]`: Interact with the multi-agent system
-   - `/memory [operation] [key] [value]`: Store or retrieve information from the bot's memory
+Confirm the bot has the necessary permissions within your Discord server.
+Check the bot logs for any error messages, which can be found in the terminal where you ran python bot.py.
+Contributing
+We love contributions! If you have ideas for new features or improvements, feel free to fork the project and submit a pull request. Please ensure your code follows the project's style and standards.
 
-## Contributing
+License
+This project is licensed under the MIT License.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[MIT License](LICENSE)
-
-## Acknowledgements
-
-- [discord.py](https://github.com/Rapptz/discord.py)
-- [crewAI](https://github.com/joaomdmoura/crewAI)
-- [DeepInfra](https://deepinfra.com/)
+Acknowledgements
+discord.py
+crewAI
+DeepInfra

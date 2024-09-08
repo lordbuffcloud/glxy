@@ -12,5 +12,5 @@ class DocumentTool:
         return f"Document {file.filename} saved successfully."
 
     def process_document_for_rag(self, document_path):
-        # Placeholder for real RAG processing logic
-        return f"Document at {document_path} processed for RAG."
+        # Example: Return key points extracted using NLP
+        return f"Key points from {document_path}: [RAG summary here]"

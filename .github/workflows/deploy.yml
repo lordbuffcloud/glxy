@@ -1,0 +1,20 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master  # or your preferred branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Deploy to server
+      run: |
+        ssh user@your-server-ip 'cd /path/to/project && git pull && pm2 restart your_app_name'
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

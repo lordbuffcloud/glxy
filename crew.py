@@ -4,65 +4,35 @@ from tools.perplexity_tool import PerplexityTool  # New tool for research
 from tools.document_tool import DocumentTool  # New tool for document analysis
 from tools.code_tool import CodeTool  # New tool for code execution
 
-# Existing Agents
+# Visionary Agent uses Reflection-Llama for reasoning tasks
 class VisionaryAgent(Agent):
     def __init__(self):
         super().__init__(
             role='Visionary',
             goal='Handle high-level conceptual tasks and strategy.',
-            backstory='You represent the visionary and futuristic thinking of Elon Musk.'
+            backstory='You represent forward-thinking and problem-solving in creative ways.'
         )
         self._deepinfra_tool = DeepInfraTool()
 
     def handle_task(self, task_description):
-        if "future" in task_description.lower():
-            return "I see a future where... (Elon-style speech)"
+        # Always perform reasoning for any task
         return self._deepinfra_tool.generate_text(task_description)
 
 
-class EngineerAgent(Agent):
-    def __init__(self):
-        super().__init__(
-            role='Engineer',
-            goal='Solve technical and engineering problems.',
-            backstory='You represent the problem-solving skills and engineering mindset of Elon Musk.'
-        )
-        self._deepinfra_tool = DeepInfraTool()
-
-    def handle_task(self, task_description):
-        if "engineering" in task_description.lower():
-            return "Let’s build something amazing! (Elon-style speech)"
-        return self._deepinfra_tool.generate_text(task_description)
-
-
-class EntrepreneurAgent(Agent):
-    def __init__(self):
-        super().__init__(
-            role='Entrepreneur',
-            goal='Manage tasks related to business and strategy.',
-            backstory='You represent the entrepreneurial spirit of Elon Musk.'
-        )
-        self._deepinfra_tool = DeepInfraTool()
-
-    def handle_task(self, task_description):
-        if "business" in task_description.lower():
-            return "Let’s innovate and disrupt industries! (Elon-style speech)"
-        return self._deepinfra_tool.generate_text(task_description)
-
-# New Agents
 class ResearchAgent(Agent):
     def __init__(self):
         super().__init__(
             role='Researcher',
             goal='Perform deep research using online sources and APIs.',
-            backstory='You represent the curiosity and fact-finding nature of a researcher.'
+            backstory='You represent curiosity and fact-finding.'
         )
-        self._perplexity_tool = PerplexityTool()  # Use the Perplexity API for research
+        self._perplexity_tool = PerplexityTool()
 
     def handle_task(self, task_description):
+        # Always perform research for any task
         return self._perplexity_tool.perform_research(task_description)
 
-
+# Code Agent handles code generation and execution
 class CodeAgent(Agent):
     def __init__(self):
         super().__init__(
@@ -75,7 +45,7 @@ class CodeAgent(Agent):
     def handle_task(self, task_description):
         return self._code_tool.execute_code(task_description)
 
-
+# Document Agent processes and analyzes documents
 class DocumentAgent(Agent):
     def __init__(self):
         super().__init__(
@@ -88,35 +58,40 @@ class DocumentAgent(Agent):
     def handle_task(self, task_description):
         return self._document_tool.process_document_for_rag(task_description)
 
-# Modified Crew class to handle task delegation
+# Entrepreneur Agent for business-related tasks
+class EntrepreneurAgent(Agent):
+    def __init__(self):
+        super().__init__(
+            role='Entrepreneur',
+            goal='Handle tasks related to business strategy and entrepreneurship.',
+            backstory='You represent entrepreneurial spirit and strategic decision-making.'
+        )
+
+    def handle_task(self, task_description):
+        # Example of a task that an entrepreneur might handle
+        if "business" in task_description.lower() or "strategy" in task_description.lower():
+            return "Here’s a detailed business strategy for your project."
+        return "No business-related task detected."
+
+# The Crew class delegates tasks to the appropriate agent
 class Crew:
     def __init__(self, agents):
         self.agents = agents
 
     def handle_task(self, task_description):
-        # Iterate through agents and let them handle tasks they specialize in
+        # Perform reasoning and research on every task
         for agent in self.agents:
             response = agent.handle_task(task_description)
-            if response:  # If the agent has a valid response, return it
+            if response:
                 return response
-        return "No agent was able to handle the task."
+        return "No agent could handle this task."
 
-# Set up the CrewAI system with multiple agents
 def setup_crew():
-    visionary_agent = VisionaryAgent()
-    engineer_agent = EngineerAgent()
-    entrepreneur_agent = EntrepreneurAgent()
-    research_agent = ResearchAgent()  # New research agent
-    code_agent = CodeAgent()  # New code agent
-    document_agent = DocumentAgent()  # New document analysis agent
-
-    # Crew setup with multiple agents
-    crew = Crew(agents=[
-        visionary_agent,
-        engineer_agent,
-        entrepreneur_agent,
-        research_agent,
-        code_agent,
-        document_agent
-    ])
-    return crew
+    agents = [
+        VisionaryAgent(),  # For reasoning using DeepInfra
+        ResearchAgent(),   # For research using Perplexity
+        CodeAgent(),       # For code execution
+        DocumentAgent(),   # For document analysis
+        EntrepreneurAgent() # For business-related tasks
+    ]
+    return Crew(agents)
