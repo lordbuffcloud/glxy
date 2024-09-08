@@ -21,10 +21,30 @@ import asyncio
 import crew
 
 # Define the agents in your hierarchical collaboration system
-research_agent = Agent(role='Research Agent', goal='Gather relevant data for user query.')
-reasoning_agent = Agent(role='Reasoning Agent', goal='Analyze and structure the information.')
-writer_agent = Agent(role='Writer Agent', goal='Generate a concise, unified response.')
-analysis_agent = Agent(role='Analysis Agent', goal='Analyze Nmap scan results and provide insights.')
+research_agent = Agent(
+    role='Research Agent',
+    goal='Gather relevant data for user query.',
+    backstory='The Research Agent is responsible for collecting and providing the necessary data.'
+)
+
+reasoning_agent = Agent(
+    role='Reasoning Agent',
+    goal='Analyze and structure the information.',
+    backstory='The Reasoning Agent organizes and analyzes information to make sense of the data.'
+)
+
+writer_agent = Agent(
+    role='Writer Agent',
+    goal='Generate a concise, unified response.',
+    backstory='The Writer Agent crafts a well-structured response based on the analysis provided.'
+)
+
+analysis_agent = Agent(
+    role='Analysis Agent',
+    goal='Analyze Nmap scan results and provide insights.',
+    backstory='The Analysis Agent specializes in examining Nmap scan data and generating useful insights.'
+)
+
 
 # Create a Crew with a Manager LLM (GPT-4 or GPT-3.5 as an example)
 crew = Crew(
@@ -233,50 +253,7 @@ async def nmap(interaction: discord.Interaction, target: str):
 
 from tools.nmap_tool import NmapTool
 
-@tree.command(name="nmap", description="Collaborative Nmap scan for penetration testing")
-async def nmap(interaction: discord.Interaction, target: str):
-    user_id = str(interaction.user.id)  # Get user ID as a string
-    agent_chatter_channel_id = int(os.getenv("AGENT_CHATTER_CHANNEL_ID"))  # Channel ID for agent chatter
-    agent_chatter_channel = await bot.fetch_channel(agent_chatter_channel_id)
 
-    try:
-        # Defer interaction to show the bot is processing
-        await interaction.response.defer(thinking=True)
-
-        # Initialize the animation message
-        embed = discord.Embed(title="🔍 Nmap Penetration Testing", description="Collaborating with agents for a scan...", color=0x00ff00)
-        message_obj = await interaction.followup.send(embed=embed)
-
-        # Initialize the NmapTool
-        nmap_tool = NmapTool()
-
-        # Step 1: Research Agent validates the input
-        await agent_chatter_channel.send("**Research Agent**: Validating the target for Nmap scan...")
-        if not nmap_tool.validate_target(target):
-            await interaction.followup.send(f"❗ Invalid target: {target}. Please provide a valid IP or domain.")
-            return
-
-        await agent_chatter_channel.send(f"**Research Agent Response**: Target `{target}` is valid for Nmap scan.")
-
-        # Step 2: Reasoning Agent determines the Nmap scan type
-        await agent_chatter_channel.send("**Reasoning Agent**: Choosing the appropriate Nmap scan...")
-        scan_type = "-sS -sV"  # This could be chosen dynamically based on the input or agent decisions
-
-        # Step 3: Execution Agent runs the Nmap scan
-        await agent_chatter_channel.send("**Execution Agent**: Executing Nmap scan...")
-        nmap_result = nmap_tool.run_scan(target, scan_type)
-
-        # Step 4: Analysis Agent analyzes the Nmap result
-        await agent_chatter_channel.send("**Analysis Agent**: Analyzing Nmap scan results...")
-        analysis_response = analysis_agent.analyze_nmap_output(nmap_result)
-
-        # Send the final results back to the user
-        final_embed = discord.Embed(title="📊 Nmap Penetration Testing Results", description=analysis_response, color=0x1E90FF)
-        await interaction.followup.send(embed=final_embed)
-
-    except Exception as e:
-        await interaction.followup.send(f"❗ **An error occurred**: {str(e)}")
-        logger.error(f"An error occurred: {str(e)}", exc_info=True)
 # /image command to process images with RAG
 @tree.command(name="image", description="Process image files with RAG")
 async def image(interaction: discord.Interaction, attachment: discord.Attachment):

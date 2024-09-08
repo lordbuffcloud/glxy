@@ -6,7 +6,8 @@ const { exec } = require('child_process');
 const app = express();
 const git = simpleGit();
 
-app.use(bodyParser.json());
+// Increase the payload limit to 50MB (or adjust as necessary)
+app.use(bodyParser.json({ limit: '50mb' }));
 
 app.post('/github-webhook', (req, res) => {
     if (req.headers['x-github-event'] === 'push') {
