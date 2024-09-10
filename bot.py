@@ -22,6 +22,7 @@ from tools.nmap_tool import NmapTool
 from db import store_conversation 
 import logging  
 from crew_manager import setup_crew
+import traceback
 
 # Define your agents
 researcher = Agent(
@@ -38,10 +39,26 @@ writer = Agent(
     verbose=True
 )
 
-# Create the Crew with hierarchical process
+# Add this with your other agent definitions
+reasoning_agent = Agent(
+    role='Reasoning Agent',
+    goal='Determine appropriate Nmap scan types',
+    backstory='Expert in network security with deep knowledge of Nmap capabilities.',
+    verbose=True
+)
+
+# Add this with your other agent definitions
+analysis_agent = Agent(
+    role='Analysis Agent',
+    goal='Analyze Nmap scan results and provide insights',
+    backstory='Expert in network security with deep understanding of Nmap output interpretation.',
+    verbose=True
+)
+
+# Update the crew_manager to include the new agent
 crew_manager = Crew(
-    agents=[researcher, writer],
-    tasks=[],  # We'll define tasks in the chat function
+    agents=[researcher, writer, reasoning_agent, analysis_agent],
+    tasks=[],
     manager_llm=ChatOpenAI(temperature=0, model="gpt-4"),
     process=Process.hierarchical,
     verbose=True
@@ -168,8 +185,6 @@ from crewai import Task
 
 @tree.command(name="chat", description="Chat with an intelligent multi-agent system for deep research")
 async def chat(interaction: discord.Interaction, message: str):
-    user_id = str(interaction.user.id)
-
     try:
         await interaction.response.defer(thinking=True)
 
@@ -207,23 +222,29 @@ async def chat(interaction: discord.Interaction, message: str):
             agent=writer
         )
 
-        # Use the Crew object to process the tasks
-        results = crew_manager.kickoff([research_task, writing_task])
+        # Use a timeout to prevent hanging
+        results = await asyncio.wait_for(crew_manager.kickoff([research_task, writing_task]), timeout=60)
 
         # Combine results if necessary
         final_response = "\n".join(results) if isinstance(results, list) else results
 
         # Store conversation in MongoDB
-        store_conversation(user_id, message, final_response)
+        store_conversation(str(interaction.user.id), message, final_response)
 
         # Send response to the user
         final_embed = discord.Embed(title="🧠 Unified Agent Response", description=final_response, color=0x1E90FF)
         await interaction.followup.send(embed=final_embed)
 
+    except asyncio.TimeoutError:
+        await interaction.followup.send("The operation timed out. Please try again with a simpler query.")
     except Exception as e:
-        await interaction.followup.send(f"❗ **An error occurred**: {str(e)}")
-        logger.error(f"An error occurred: {str(e)}", exc_info=True)
+        error_message = f"An error occurred: {str(e)}\n```{traceback.format_exc()}```"
+        await interaction.followup.send(error_message[:1900])  # Discord message limit
+        logger.error(error_message)
 
+@tree.command(name="hi", description="A simple greeting command")
+async def hi(interaction: discord.Interaction):
+    await interaction.response.send_message("Hello! How can I assist you today?")
 
 # Import the store_conversation function from db.py
 
@@ -272,7 +293,12 @@ async def nmap(interaction: discord.Interaction, target: str):
         # Step 2: Reasoning Agent determines Nmap scan type
         await agent_chatter_channel.send("**Reasoning Agent**: Choosing the appropriate Nmap scan...")
         # Choosing an Nmap scan type (e.g., SYN scan, version detection)
-        nmap_scan_command = reasoning_agent.choose_scan_type(target)
+        nmap_scan_command = crew_manager.kickoff([
+            Task(
+                description=f"Choose appropriate Nmap scan type for target: {target}",
+                agent=reasoning_agent
+            )
+        ])[0]
 
         await agent_chatter_channel.send(f"**Reasoning Agent Response**: Running command `{nmap_scan_command}` on target `{target}`.")
 
