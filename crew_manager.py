@@ -3,7 +3,31 @@ from tools.deepinfra_tool import DeepInfraTool
 from tools.perplexity_tool import PerplexityTool  # New tool for research
 from tools.document_tool import DocumentTool  # New tool for document analysis
 from tools.code_tool import CodeTool  # New tool for code execution
+import asyncio
+from typing import List, Dict, Any
+# Task class with to_dict method
+class Task:
+    def __init__(self, task_name, task_description):
+        self.task_name = task_name
+        self.task_description = task_description
 
+    def to_dict(self):
+        return {
+            'task_name': self.task_name,
+            'task_description': self.task_description
+        }
+
+
+# Set up Crew with agents
+def setup_crew():
+    agents = [
+        VisionaryAgent(),  # For reasoning using DeepInfra
+        ResearchAgent(),   # For research using Perplexity
+        CodeAgent(),       # For code execution
+        DocumentAgent(),   # For document analysis
+        EntrepreneurAgent() # For business-related tasks
+    ]
+    return Crew(agents)
 # Visionary Agent uses Reflection-Llama for reasoning tasks
 class VisionaryAgent(Agent):
     def __init__(self):
@@ -74,24 +98,40 @@ class EntrepreneurAgent(Agent):
         return "No business-related task detected."
 
 # The Crew class delegates tasks to the appropriate agent
+
+
 class Crew:
-    def __init__(self, agents):
+    def __init__(self, agents: List[Agent]):
         self.agents = agents
+        self.task_queue = asyncio.Queue()
 
-    def handle_task(self, task_description):
-        # Perform reasoning and research on every task
-        for agent in self.agents:
-            response = agent.handle_task(task_description)
-            if response:
-                return response
-        return "No agent could handle this task."
+    async def kickoff(self, task: Dict[str, Any]) -> Any:
+        await self.task_queue.put(task)
+        return await self.process_tasks()
 
-def setup_crew():
-    agents = [
-        VisionaryAgent(),  # For reasoning using DeepInfra
-        ResearchAgent(),   # For research using Perplexity
-        CodeAgent(),       # For code execution
-        DocumentAgent(),   # For document analysis
-        EntrepreneurAgent() # For business-related tasks
-    ]
-    return Crew(agents)
+    async def process_tasks(self) -> Any:
+        while not self.task_queue.empty():
+            task = await self.task_queue.get()
+            for agent in self.agents:
+                if agent.can_handle(task):
+                    return await agent.handle_task(task)
+        return None
+
+    async def run(self):
+        while True:
+            await self.process_tasks()
+            await asyncio.sleep(1)
+
+
+class Agent:
+    def __init__(self, role, goal, backstory):
+        self.role = role
+        self.goal = goal
+        self.backstory = backstory
+        self._original_role = role
+
+    def interpolate_inputs(self, inputs):
+        if not isinstance(inputs, dict):
+            raise TypeError("Inputs must be a dictionary")
+        self.role = self._original_role.format(**inputs)
+

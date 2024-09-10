@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 import os
-from crew import setup_crew
 import asyncio
 from dotenv import load_dotenv
 import animations
@@ -13,47 +12,39 @@ import signal
 import sys
 from pymongo import MongoClient
 from db import get_conversation_history, save_conversation 
-from crewai import Crew, Process, Agent
+from crewai import Crew, Task, Agent, Process
 from langchain_openai import ChatOpenAI
 import discord
 from discord import app_commands
 import asyncio
-import crew
+import crew_manager as crew_manager
 from tools.nmap_tool import NmapTool
-from db import store_conversation   
+from db import store_conversation 
+import logging  
+from crew_manager import setup_crew
 
-research_agent = Agent(
-    role='Research Agent',
-    goal='Gather relevant data for user query.',
-    backstory='The Research Agent is responsible for collecting and providing the necessary data.'
+# Define your agents
+researcher = Agent(
+    role='Researcher',
+    goal='Gather and analyze relevant data for user queries',
+    backstory='Experienced data analyst with a knack for uncovering hidden trends and relevant information.',
+    verbose=True
 )
 
-reasoning_agent = Agent(
-    role='Reasoning Agent',
-    goal='Analyze and structure the information.',
-    backstory='The Reasoning Agent organizes and analyzes information to make sense of the data.'
+writer = Agent(
+    role='Writer',
+    goal='Create engaging and informative responses',
+    backstory='Creative writer skilled at synthesizing complex information into clear, concise responses.',
+    verbose=True
 )
 
-writer_agent = Agent(
-    role='Writer Agent',
-    goal='Generate a concise, unified response.',
-    backstory='The Writer Agent crafts a well-structured response based on the analysis provided.'
-)
-
-analysis_agent = Agent(
-    role='Analysis Agent',
-    goal='Analyze Nmap scan results and provide insights.',
-    backstory='The Analysis Agent specializes in examining Nmap scan data and generating useful insights.'
-)
-
-
-# Create a Crew with a Manager LLM (GPT-4 or GPT-3.5 as an example)
-crew = Crew(
-    agents=[research_agent, reasoning_agent, writer_agent, analysis_agent],
-    manager_llm=ChatOpenAI(temperature=0.5, model="gpt-4"),
+# Create the Crew with hierarchical process
+crew_manager = Crew(
+    agents=[researcher, writer],
+    tasks=[],  # We'll define tasks in the chat function
+    manager_llm=ChatOpenAI(temperature=0, model="gpt-4"),
     process=Process.hierarchical,
-    memory=True,    # Enable memory for context persistence
-    planning=True   # Enable planning for better collaboration
+    verbose=True
 )
 
 # Load environment variables
@@ -69,7 +60,6 @@ conversations_collection = db['conversations']  # Collection to store conversati
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
@@ -82,7 +72,7 @@ STARTUP_CHANNEL_ID = os.getenv("STARTUP_CHANNEL_ID")
 agent_chatter_channel_id = int(os.getenv("AGENT_CHATTER_CHANNEL_ID"))
 
 # Initialize CrewAI with hierarchical agents
-crew = setup_crew()
+crew_manager = setup_crew()
 def save_conversation(user_id: str, message: str, response: str):
     """Save the user input and agent response to MongoDB"""
     conversations_collection.update_one(
@@ -139,7 +129,7 @@ async def on_ready():
                 logger.info(f"Channel {STARTUP_CHANNEL_ID} found")
                 
                 # Send ASCII art and instructions
-                ascii_art = """
+                ascii_art = r"""
     ╩╩╩╩╩╩___╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩╩
   ╩╩╩╩╩╩/\_ \╩╩╩3y5╩╩╩╩╩╩╩╩╩╩╩╩╩╩
   ╩╩╩__╩\//\ \╩╩╩__╩╩_╩__╩╩__╩╩╩╩
@@ -174,12 +164,13 @@ async def on_ready():
     logger.info("on_ready event completed")
 
 # /chat command with animation and multi-agent responses
+from crewai import Task
+
 @tree.command(name="chat", description="Chat with an intelligent multi-agent system for deep research")
 async def chat(interaction: discord.Interaction, message: str):
-    user_id = str(interaction.user.id)  # Get user ID as a string
+    user_id = str(interaction.user.id)
 
     try:
-        # Defer interaction to show the bot is processing
         await interaction.response.defer(thinking=True)
 
         # Initialize the animation message
@@ -201,37 +192,32 @@ async def chat(interaction: discord.Interaction, message: str):
             await message_obj.edit(embed=embed)
             await asyncio.sleep(2)
 
-        # Inform agent chatter channel that collaboration has started
         await agent_chatter_channel.send(f"🧠 **Agent Chatter**: Collaboration starting for user `{interaction.user}`.\nMessage: `{message}`")
 
-        # Hierarchical collaboration process
-        conversation_context = f"User: {message}"
+        # Create tasks for the crew
+        research_task = Task(
+            description=f"Research and gather relevant information for the query: {message}",
+            expected_output="A comprehensive set of relevant facts and data points related to the query.",
+            agent=researcher
+        )
 
-        # Log and send research agent input/output
-        await agent_chatter_channel.send("**Research Agent**: Gathering information...")
-        research_response = research_agent.execute(conversation_context)
-        await agent_chatter_channel.send(f"**Research Agent Response**: {research_response}")
+        writing_task = Task(
+            description="Synthesize the research findings into a clear, concise response",
+            expected_output="A well-structured, informative response that addresses the user's query based on the research findings.",
+            agent=writer
+        )
 
-        # Log and send reasoning agent input/output
-        await agent_chatter_channel.send("**Reasoning Agent**: Analyzing the information...")
-        reasoning_response = reasoning_agent.execute(research_response)
-        await agent_chatter_channel.send(f"**Reasoning Agent Response**: {reasoning_response}")
+        # Use the Crew object to process the tasks
+        results = crew_manager.kickoff([research_task, writing_task])
 
-        # Log and send writer agent input/output
-        await agent_chatter_channel.send("**Writer Agent**: Synthesizing the final response...")
-        final_response = writer_agent.execute(reasoning_response)
-        await agent_chatter_channel.send(f"**Writer Agent Final Response**: {final_response}")
+        # Combine results if necessary
+        final_response = "\n".join(results) if isinstance(results, list) else results
 
-        # Manager Agent final coordination (if applicable)
-        await agent_chatter_channel.send("**Manager Agent**: Coordinating the final response...")
-        crew_result = crew.handle_task(conversation_context)
-        await agent_chatter_channel.send(f"**Manager Agent Final Response**: {crew_result}")
+        # Store conversation in MongoDB
+        store_conversation(user_id, message, final_response)
 
-        # Store conversation in MongoDB for future reference
-        store_conversation(user_id, message, crew_result)
-
-        # Send final response to the user in the channel where /chat was invoked
-        final_embed = discord.Embed(title="🧠 Unified Agent Response", description=crew_result, color=0x1E90FF)
+        # Send response to the user
+        final_embed = discord.Embed(title="🧠 Unified Agent Response", description=final_response, color=0x1E90FF)
         await interaction.followup.send(embed=final_embed)
 
     except Exception as e:
@@ -248,8 +234,8 @@ from discord import app_commands
 import asyncio
 
 # Create a Crew with a Manager LLM (GPT-4 or GPT-3.5 as an example)
-crew = Crew(
-    agents=[research_agent, reasoning_agent, writer_agent, analysis_agent],
+crew_manager = Crew(
+    agents=[researcher, writer],
     manager_llm=ChatOpenAI(temperature=0.5, model="gpt-4"),
     process=Process.hierarchical,
     memory=True,    # Enable memory for context persistence
@@ -275,7 +261,7 @@ async def nmap(interaction: discord.Interaction, target: str):
         # Step 1: Research Agent validates the input
         await agent_chatter_channel.send("**Research Agent**: Validating the target for Nmap scan...")
         # Assuming a research_agent.verify_target(target) function validates the target IP/domain
-        validation = research_agent.verify_target(target)
+        validation = researcher.verify_target(target)
 
         if not validation['valid']:
             await interaction.followup.send(f"❗ Invalid target: {target}. Please provide a valid IP or domain.")
@@ -330,7 +316,7 @@ async def image(interaction: discord.Interaction, attachment: discord.Attachment
         await interaction.response.send_message(f"Image {attachment.filename} saved and processed.")
         
         # Simulated RAG processing task (replace this with actual AI processing)
-        result = crew.handle_task(f"Process image with RAG: {file_path}")
+        result = crew_manager.handle_task(f"Process image with RAG: {file_path}")
         await interaction.followup.send(result)
     except Exception as e:
         await interaction.followup.send(f"❗ **An error occurred**: {str(e)}")
@@ -349,7 +335,7 @@ async def doc(interaction: discord.Interaction, attachment: discord.Attachment):
         await animations.thinking_animation(interaction)
 
         # Simulate document analysis task
-        document_agent_response = crew.handle_task(f"analyze document {file_path}")
+        document_agent_response = crew_manager.handle_task(f"analyze document {file_path}")
 
         await interaction.followup.send(f"Document analysis complete:\n{document_agent_response}")
     except Exception as e:
@@ -400,3 +386,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Bot is shutting down...")
         asyncio.run(cleanup())
+
