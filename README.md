@@ -1,6 +1,6 @@
 # GLXY - Agent Framework
 
-![GLXY Logo](.glxy_logo.png)
+![GLXY Logo](glxy_logo.png)
 
 **GLXY** is a powerful AI agent framework that integrates seamlessly into your workflows. It features a command-line interface for full control, helping you automate tasks, manage data, and boost productivity.
 
