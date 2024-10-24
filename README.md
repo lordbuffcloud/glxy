@@ -2,7 +2,7 @@
 
 **GLXY** is a powerful AI agent framework that integrates seamlessly into your workflows. It features a command-line interface for full control, helping you automate tasks, manage data, and boost productivity.
 
-GLXY is proprietary and serves as the backbone of **King Digital Solutions**. Want GLXY in your apps or life? Head to [glxy.api](https://glxy.api) (coming soon).
+GLXY is proprietary and serves as the backbone of **King Digital Solutions**. Want GLXY in your apps or life? Head to [glxy.dev](https://glxy.dev) (coming soon).
 
 ## 🚀 Features
 
