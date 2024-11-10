@@ -1,8 +1,10 @@
 GLXY
 
-GLXY is an ever-evolving, powerful AI agent framework that seamlessly integrates into your workflows. Combining the latest and greatest open-source tools for programming with generative AI, GLXY weaves together technologies like Fabric, Agent-0, Autogen, Crew AI, Route LLM, OpenAI Swarm, Ollama, LM Studio, and many more into a highly capable framework.
+GLXY is an ever-evolving, powerful AI agent framework that seamlessly integrates into your workflows. Combining the latest and greatest open-source tools for a highly capable framework.
 
 With a feature-rich command-line interface, GLXY gives you full control to automate tasks, manage data, and boost productivity. Custom tooling is added daily, enhancing the system’s capabilities. Initially tested and developed using a CLI Discord bot, once a need is met or a problem is solved, it’s baked into an app and packaged for customers.
+
+![glxy1](https://glxy.dev/g1.png)
 
 GLXY is proprietary and serves as the backbone of King Digital Solutions. Interested in integrating GLXY into your applications or life? Visit glxy.dev (coming soon).
 
@@ -23,6 +25,8 @@ GLXY is proprietary and serves as the backbone of King Digital Solutions. Intere
 💻 Command-Line Interface
 
 GLXY comes with a powerful yet simple command-line interface for easy task deployment.
+
+![glxy2](https://glxy.dev/g2.png)
 
 Command Help
 
